@@ -2,7 +2,7 @@ import * as cp from 'child_process';
 import * as vscode from 'vscode';
 import * as util from 'util';
 import { join } from 'path';
-import { RegoError, parseRegoError } from './regoError';
+import { RegoErrors, parseRegoError } from './regoError';
 
 export default class Linter {
   private codeDocument: vscode.TextDocument;
@@ -11,29 +11,16 @@ export default class Linter {
     this.codeDocument = document;
   }
 
-  public async lint(): Promise<RegoError[]> {
+  public async lint(): Promise<RegoErrors> {
     const errors = await this.runRegoLint();
-    if (!errors) {
-      return [];
-    }
+    const lintingErrors: RegoErrors = this.parseErrors(errors);
 
-    const lintingErrors: RegoError[] = this.parseErrors(errors);
     return lintingErrors;
   }
 
-  private parseErrors(errorStr: string): RegoError[] {
-    let errors = errorStr.split('\n') || [];
-
-    var result = errors.reduce((errors: RegoError[], currentError: string) => {
-      const parsedError = parseRegoError(currentError);
-      if (!parsedError.reason) {
-        return errors;
-      }
-
-      return errors.concat(parsedError);
-    }, []);
-
-    return result;
+  private parseErrors(errorJson: string): RegoErrors {
+    const parsedErrors = parseRegoError(errorJson);
+    return parsedErrors;
   }
 
   private async runRegoLint(): Promise<string> {
@@ -41,14 +28,13 @@ export default class Linter {
     const exec = util.promisify(cp.exec);
 
     let cmd: string
-    vscode.workspace.workspaceFolders
     if (vscode.workspace.workspaceFolders) {
       let workspaceFolder: vscode.WorkspaceFolder = vscode.workspace.workspaceFolders[0]
       let opaCheckFolder: string = join(workspaceFolder.uri.fsPath, "policy")
 
-      cmd = `opa test "${opaCheckFolder}"`
+      cmd = `opa check "${opaCheckFolder}" --format json`
     } else {
-      cmd = `opa test "${currentFile}"`
+      cmd = `opa check "${currentFile}" --format json`
     }
 
     let lintResults: string = "";

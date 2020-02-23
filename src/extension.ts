@@ -1,20 +1,19 @@
 import * as vscode from 'vscode';
 import Linter from './linter';
-import { RegoError } from './regoError'
-import { URI } from 'vscode-uri'
+import { RegoErrors } from './regoError'
 
 async function doLint(codeDocument: vscode.TextDocument, collection: vscode.DiagnosticCollection): Promise<void> {
   const linter = new Linter(codeDocument);
-  const errors: RegoError[] = await linter.lint();
+  let result: RegoErrors = await linter.lint();
 
   collection.clear();
 
-  errors.forEach(function (error) {
-    let fileUri: vscode.Uri = URI.file(error.file)
-    let fileDiagnostic: vscode.Diagnostic = new vscode.Diagnostic(codeDocument.lineAt(1).range, error.reason, vscode.DiagnosticSeverity.Error);
-    let fileDiagnostics: vscode.Diagnostic[] = [fileDiagnostic]
+  result.errors.forEach((error) => {
+    let range: vscode.Range = new vscode.Range(error.location.row - 1, 0, error.location.row, 1)
+    let diagnostic: vscode.Diagnostic = new vscode.Diagnostic(range, error.message, vscode.DiagnosticSeverity.Error)
+    let fileLocation: vscode.Uri = vscode.Uri.file(error.location.file)
 
-    collection.set(fileUri, fileDiagnostics)
+    collection.set(fileLocation, [diagnostic])
   });
 }
 

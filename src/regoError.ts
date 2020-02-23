@@ -1,59 +1,44 @@
+export interface RegoErrors {
+  errors: RegoError[]
+}
+
 export interface RegoError {
+  message: string;
+  code: string;
+  location: ErrorLocation;
+}
+
+export interface ErrorLocation {
   file: string;
-  line: number;
-  type: string;
-  reason: string;
+  row: number;
+  col: number;
 }
 
-export function parseRegoError(error: string): RegoError {
+export function parseRegoError(error: string): RegoErrors {
   if (!error) {
-    return getEmptyRegoError();
+    return getEmptyRegoErrorCollection();
   }
 
-  if (error.includes("errors occurred")) {
-    return getEmptyRegoError();
-  }
-
-  if (error.startsWith("\t")) {
-    return getEmptyRegoError();
-  }
-
-  let errorReason: string
-  let errorType: string
-  let errorSegments: string[] = error.split(": ")
-
-  if (error.includes("1 error occurred")) {
-    errorType = errorSegments[2]
-    errorReason = errorSegments[3]
-  } else {
-    errorType = errorSegments[1]
-    errorReason = errorSegments[2]
-  }
-
-  let errorFile: string
-  let errorLine: number
-  let fileErrorSegments: string[] = error.split(".rego:")
-
-  errorFile = fileErrorSegments[0] + ".rego"
-  errorLine = parseInt(fileErrorSegments[1], 10)
-
-  const regoError: RegoError = {
-    file: errorFile,
-    line: errorLine,
-    type: errorType,
-    reason: errorReason
-  };
-
-  return regoError;
+  let regoErrors: RegoErrors = JSON.parse(error)
+  return regoErrors;
 }
 
-export function getEmptyRegoError(): RegoError {
-  const emptyRegoError: RegoError = {
+export function getEmptyRegoErrorCollection(): RegoErrors {
+  const emptyLocation: ErrorLocation = {
     file: "",
-    line: 0,
-    type: "",
-    reason: ""
+    row: 0,
+    col: 0
+  }
+
+  const emptyRegoError: RegoError = {
+    message: "",
+    code: "",
+    location: emptyLocation
   };
 
-  return emptyRegoError;
+  const emptyRegoErrors: RegoErrors = {
+    errors: [emptyRegoError]
+  }
+
+  return emptyRegoErrors
 }
