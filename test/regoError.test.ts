@@ -12,6 +12,7 @@ describe('parseRegoError', () => {
   describe('should return the correct values', () => {
     it('when parsing a single error', () => {
       const expected: RegoError = {
+        file: "",
         line: 10,
         type: "rego_parse_error",
         reason: "no match found"
@@ -25,6 +26,7 @@ describe('parseRegoError', () => {
 
     it('when parsing multiple errors', () => {
       const expected: RegoError = {
+        file: "",
         line: 10,
         type: "rego_parse_error",
         reason: "no match found"

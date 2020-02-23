@@ -1,4 +1,5 @@
 export interface RegoError {
+  file: string;
   line: number;
   type: string;
   reason: string;
@@ -17,10 +18,8 @@ export function parseRegoError(error: string): RegoError {
     return getEmptyRegoError();
   }
 
-  var errorLine: number
-  var errorReason: string
-  var errorType: string
-
+  let errorReason: string
+  let errorType: string
   let errorSegments: string[] = error.split(": ")
 
   if (error.includes("1 error occurred")) {
@@ -31,9 +30,15 @@ export function parseRegoError(error: string): RegoError {
     errorReason = errorSegments[2]
   }
 
-  errorLine = parseInt(error.split(".rego:")[1], 10);
+  let errorFile: string
+  let errorLine: number
+  let fileErrorSegments: string[] = error.split(".rego:")
+
+  errorFile = fileErrorSegments[0] + ".rego"
+  errorLine = parseInt(fileErrorSegments[1], 10)
 
   const regoError: RegoError = {
+    file: errorFile,
     line: errorLine,
     type: errorType,
     reason: errorReason
@@ -44,6 +49,7 @@ export function parseRegoError(error: string): RegoError {
 
 export function getEmptyRegoError(): RegoError {
   const emptyRegoError: RegoError = {
+    file: "",
     line: 0,
     type: "",
     reason: ""

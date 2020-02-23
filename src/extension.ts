@@ -1,16 +1,21 @@
 import * as vscode from 'vscode';
-import Linter, { LinterError } from './linter';
+import Linter from './linter';
+import { RegoError } from './regoError'
+import { URI } from 'vscode-uri'
 
 async function doLint(codeDocument: vscode.TextDocument, collection: vscode.DiagnosticCollection): Promise<void> {
   const linter = new Linter(codeDocument);
-  const errors: LinterError[] = await linter.lint();
-
-  const diagnostics = errors.map(error => {
-    return new vscode.Diagnostic(error.range, error.message.reason, vscode.DiagnosticSeverity.Error);
-  });
+  const errors: RegoError[] = await linter.lint();
 
   collection.clear();
-  collection.set(codeDocument.uri, diagnostics);
+
+  errors.forEach(function (error) {
+    let fileUri: vscode.Uri = URI.file(error.file)
+    let fileDiagnostic: vscode.Diagnostic = new vscode.Diagnostic(codeDocument.lineAt(1).range, error.reason, vscode.DiagnosticSeverity.Error);
+    let fileDiagnostics: vscode.Diagnostic[] = [fileDiagnostic]
+
+    collection.set(fileUri, fileDiagnostics)
+  });
 }
 
 export function activate(context: vscode.ExtensionContext) {
@@ -19,7 +24,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   let events = vscode.commands.registerCommand(commandId, () => {
     vscode.workspace.onDidSaveTextDocument((document: vscode.TextDocument) => {
-      if(document.languageId !== 'rego') {
+      if (document.languageId !== 'rego') {
         return;
       }
 
