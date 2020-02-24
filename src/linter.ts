@@ -1,12 +1,8 @@
 import * as cp from 'child_process';
 import * as vscode from 'vscode';
 import * as util from 'util';
-import { RegoError, parseRegoError } from './regoError';
-
-export interface LinterError {
-  message: RegoError;
-  range: vscode.Range;
-}
+import { join } from 'path';
+import { RegoErrors, getEmptyRegoErrorCollection } from './regoError';
 
 export default class Linter {
   private codeDocument: vscode.TextDocument;
@@ -15,53 +11,48 @@ export default class Linter {
     this.codeDocument = document;
   }
 
-  public async lint(): Promise<LinterError[]> {
+  public async lint(): Promise<RegoErrors> {
     const errors = await this.runRegoLint();
-    if (!errors) {
-      return [];
-    }
+    const lintingErrors: RegoErrors = this.parseErrors(errors);
 
-    const lintingErrors: LinterError[] = this.parseErrors(errors);
     return lintingErrors;
   }
 
-  private parseErrors(errorStr: string): LinterError[] {
-    let errors = errorStr.split('\n') || [];
+  private parseErrors(errorJson: string): RegoErrors {
+    if (!errorJson) {
+      return getEmptyRegoErrorCollection();
+    }
 
-    var result = errors.reduce((errors: LinterError[], currentError: string) => {
-      const parsedError = parseRegoError(currentError);
-      if (!parsedError.reason) {
-        return errors;
+    let regoErrors: RegoErrors = JSON.parse(errorJson)
+
+    regoErrors.errors.forEach((error) => {
+      let isWindows: Boolean = this.codeDocument.fileName.indexOf(':') > 0
+      if (error.location && isWindows) {
+        let driveLetter: string = this.codeDocument.fileName[0]
+        error.location.file = join(`${driveLetter}:\\`, error.location.file)
       }
+    })
 
-      const linterError: LinterError = this.createLinterError(parsedError);
-      return errors.concat(linterError);
-    }, []);
-
-    return result;
+    return regoErrors;
   }
 
   private async runRegoLint(): Promise<string> {
     const currentFile = this.codeDocument.uri.fsPath;
     const exec = util.promisify(cp.exec);
-    const cmd = `opa test "${currentFile}"`;
+
+    let cmd: string
+    if (vscode.workspace.workspaceFolders) {
+      let workspaceFolder: vscode.WorkspaceFolder = vscode.workspace.workspaceFolders[0]
+      let opaCheckFolder: string = join(workspaceFolder.uri.fsPath, "policy")
+
+      cmd = `opa check "${opaCheckFolder}" --format json`
+    } else {
+      cmd = `opa check "${currentFile}" --format json`
+    }
 
     let lintResults: string = "";
     await exec(cmd).catch((error: any) => lintResults = error.stderr);
 
     return lintResults;
-  }
-
-  private createLinterError(error: RegoError): LinterError {
-    const linterError: LinterError = {
-      message: error,
-      range: this.getErrorRange(error)
-    };
-
-    return linterError;
-  }
-
-  private getErrorRange(error: RegoError): vscode.Range {
-    return this.codeDocument.lineAt(error.line - 1).range;
   }
 }

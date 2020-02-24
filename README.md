@@ -17,9 +17,8 @@ NOTE: OPA must be installed and available in your PATH
 ```
 
 ## Local Development
+To install the needed dependencies run `npm install`
 
 To compile the solution locally run `npm run compile`
-
-To run the unit tests run `npm run test`
 
 To run the extension in a Visual Studio Code development environment press `F5` in Visual Studio Code
