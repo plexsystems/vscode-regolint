@@ -2,7 +2,7 @@ import * as cp from 'child_process';
 import * as vscode from 'vscode';
 import * as util from 'util';
 import { join } from 'path';
-import { RegoErrors, parseRegoError } from './regoError';
+import { RegoErrors, getEmptyRegoErrorCollection } from './regoError';
 
 export default class Linter {
   private codeDocument: vscode.TextDocument;
@@ -19,8 +19,21 @@ export default class Linter {
   }
 
   private parseErrors(errorJson: string): RegoErrors {
-    const parsedErrors = parseRegoError(errorJson);
-    return parsedErrors;
+    if (!errorJson) {
+      return getEmptyRegoErrorCollection();
+    }
+
+    let regoErrors: RegoErrors = JSON.parse(errorJson)
+
+    regoErrors.errors.forEach((error) => {
+      let isWindows: Boolean = this.codeDocument.fileName.indexOf(':') > 0
+      if (error.location && isWindows) {
+        let driveLetter: string = this.codeDocument.fileName[0]
+        error.location.file = join(`${driveLetter}:\\`, error.location.file)
+      }
+    })
+
+    return regoErrors;
   }
 
   private async runRegoLint(): Promise<string> {

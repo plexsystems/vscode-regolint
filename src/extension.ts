@@ -8,12 +8,25 @@ async function doLint(codeDocument: vscode.TextDocument, collection: vscode.Diag
 
   collection.clear();
 
+  let diagnostics: vscode.Diagnostic[] = []
   result.errors.forEach((error) => {
-    let range: vscode.Range = new vscode.Range(error.location.row - 1, 0, error.location.row, 1)
-    let diagnostic: vscode.Diagnostic = new vscode.Diagnostic(range, error.message, vscode.DiagnosticSeverity.Error)
+    if (!error.location || error.message === "") {
+      return
+    }
+
     let fileLocation: vscode.Uri = vscode.Uri.file(error.location.file)
 
-    collection.set(fileLocation, [diagnostic])
+    let range: vscode.Range
+    if (fileLocation.toString() === codeDocument.uri.toString()) {
+      range = codeDocument.lineAt(error.location.row - 1).range
+    } else {
+      range = new vscode.Range(error.location.row - 1, 0, error.location.row, 1)
+    }
+
+    let diagnostic: vscode.Diagnostic = new vscode.Diagnostic(range, error.message, vscode.DiagnosticSeverity.Error)
+
+		diagnostics.push(diagnostic);
+		collection.set(fileLocation, diagnostics)
   });
 }
 

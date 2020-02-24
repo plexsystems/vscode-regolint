@@ -14,15 +14,6 @@ export interface ErrorLocation {
   col: number;
 }
 
-export function parseRegoError(error: string): RegoErrors {
-  if (!error) {
-    return getEmptyRegoErrorCollection();
-  }
-
-  let regoErrors: RegoErrors = JSON.parse(error)
-  return regoErrors;
-}
-
 export function getEmptyRegoErrorCollection(): RegoErrors {
   const emptyLocation: ErrorLocation = {
     file: "",

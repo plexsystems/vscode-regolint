@@ -4,7 +4,7 @@
   "description": "Lint your Rego files",
   "license": "MIT",
   "homepage": "https://github.com/plexsystems/vscode-regolint",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "plex",
   "icon": "icon/rego_lint_128.png",
   "repository": {
@@ -32,8 +32,7 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc",
     "precompile": "rimraf ./out",
-    "watch": "tsc -watch -p ./",
-    "test": "npm run compile && mocha out/test/*.test.js"
+    "watch": "tsc -watch -p ./"
   },
   "dependencies": {
     "vscode-uri": "2.1.1"
